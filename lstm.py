@@ -1,99 +1,102 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from keras.models import Sequential
 from keras.layers import LSTM, Dense
+import matplotlib.pyplot as plt
 
-# 读取数据
-data = pd.read_csv('./dataset/pollution-simple.csv')
+# 读取CSV文件
+# data = pd.read_csv('./dataset/pollution-simple.csv')
+data = pd.read_csv('./normalized_data.csv')
 
-# 提取需要的列并进行归一化处理
-dataset = data[['pollution']].values.astype('float32')
+# 提取需要的特征列
+features = ['date', 'dew', 'temp', 'press', 'wnd_spd', 'snow', 'pollution']
+data = data[features]
+
+# 将日期列转换为日期类型
+data['date'] = pd.to_datetime(data['date'])
+
+# 按日期排序数据
+data = data.sort_values('date')
+
+# 提取需预测的目标列
+target_col = 'pollution'
+target_data = data[target_col].values.reshape(-1, 1)
+
+# 数据标准化
 scaler = MinMaxScaler(feature_range=(0, 1))
-dataset = scaler.fit_transform(dataset)
+scaled_data = scaler.fit_transform(target_data)
 
-# 将数据集划分为训练集和测试集
-train_size = int(len(dataset) * 0.7)
-train, test = dataset[:train_size], dataset[train_size:]
+# 定义函数将数据集转换为监督学习问题
+def create_dataset(data, lookback):
+    X, y = [], []
+    for i in range(len(data)-lookback):
+        X.append(data[i:i+lookback, :])
+        y.append(data[i+lookback, 0])
+    return np.array(X), np.array(y)
 
-# 创建用于时序预测的数据集
-def create_dataset(dataset, time_steps=1):
-    X, Y = [], []
-    for i in range(len(dataset)-time_steps):
-        X.append(dataset[i:i+time_steps])
-        Y.append(dataset[i+time_steps])
-    return np.array(X), np.array(Y)
+# 设置时间步长（lookback）和训练/测试集划分比例
+lookback = 4
+train_ratio = 0.8
 
-time_steps = 10  # 可灵活控制的时间步长
-train_X, train_Y = create_dataset(train, time_steps)
-test_X, test_Y = create_dataset(test, time_steps)
+# 划分训练集和测试集
+train_size = int(len(scaled_data) * train_ratio)
+train_data = scaled_data[:train_size, :]
+test_data = scaled_data[train_size-lookback:, :]
+
+# 创建训练集和测试集
+X_train, y_train = create_dataset(train_data, lookback)
+X_test, y_test = create_dataset(test_data, lookback)
 
 # 构建LSTM模型
 model = Sequential()
-model.add(LSTM(50, input_shape=(time_steps, 1)))
-model.add(Dense(1))
-model.compile(loss='mean_squared_error', optimizer='adam')
-model.summary()
+model.add(LSTM(units=50, input_shape=(lookback, X_train.shape[2])))
+model.add(Dense(units=1))
+model.compile(optimizer='adam', loss='mean_squared_error')
+
 # 训练模型
-history = model.fit(train_X, train_Y, epochs=10, batch_size=32, validation_data=(test_X, test_Y), verbose=2)
+history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_test, y_test))
 
-# 预测
-train_predict = model.predict(train_X)
-test_predict = model.predict(test_X)
+# 模型预测
+train_predictions = model.predict(X_train)
+test_predictions = model.predict(X_test)
 
-# 反归一化处理
-train_predict = scaler.inverse_transform(train_predict.reshape(-1, 1))
-train_Y = scaler.inverse_transform(train_Y.reshape(-1, 1))
-test_predict = scaler.inverse_transform(test_predict.reshape(-1, 1))
-test_Y = scaler.inverse_transform(test_Y.reshape(-1, 1))
+# 反标准化预测结果
+train_predictions = scaler.inverse_transform(train_predictions)
+y_train = scaler.inverse_transform([y_train])
+test_predictions = scaler.inverse_transform(test_predictions)
+y_test = scaler.inverse_transform([y_test])
 
-
-# 评估模型
-# 评估模型
-train_rmse = np.sqrt(mean_squared_error(train_Y.reshape(-1), train_predict.reshape(-1)))
-train_rmae = mean_absolute_error(train_Y.reshape(-1), train_predict.reshape(-1))
-train_r2 = r2_score(train_Y.reshape(-1), train_predict.reshape(-1))
-
-test_rmse = np.sqrt(mean_squared_error(test_Y.reshape(-1), test_predict.reshape(-1)))
-test_rmae = mean_absolute_error(test_Y.reshape(-1), test_predict.reshape(-1))
-test_r2 = r2_score(test_Y.reshape(-1), test_predict.reshape(-1))
-
-print("Train RMSE:", train_rmse)
-print("Train RMAE:", train_rmae)
-print("Train R2:", train_r2)
-print("Test RMSE:", test_rmse)
-print("Test RMAE:", test_rmae)
-print("Test R2:", test_r2)
-
+# 计算评估指标
+train_rmse = np.sqrt(mean_squared_error(y_train[0], train_predictions[:, 0]))
+train_mae = mean_absolute_error(y_train[0], train_predictions[:, 0])
+train_r2 = r2_score(y_train[0], train_predictions[:, 0])
+test_rmse = np.sqrt(mean_squared_error(y_test[0], test_predictions[:, 0]))
+test_mae = mean_absolute_error(y_test[0], test_predictions[:, 0])
+test_r2 = r2_score(y_test[0], test_predictions[:, 0])
 
 # 可视化损失函数
-plt.plot(history.history['loss'], label='Train Loss')
-plt.plot(history.history['val_loss'], label='Test Loss')
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Model Loss')
 plt.xlabel('Epochs')
 plt.ylabel('Loss')
-plt.legend()
+plt.legend(['Train', 'Test'])
 plt.show()
 
-# 可视化注意力权重
-attention_weights = model.layers[0].get_weights()[0]
-plt.bar(range(time_steps), attention_weights[:, 0])
-plt.xlabel('Time Step')
-plt.ylabel('Attention Weight')
-plt.show()
-
-# 可视化真实值与预测值
-plt.plot(train_Y[0], label='Actual')
-plt.plot(train_predict[:,0], label='Predicted')
+# 反归一化后可视化真实值与预测值
+plt.plot(y_test[0])
+plt.plot(test_predictions[:, 0])
+plt.title('Actual vs Predicted')
 plt.xlabel('Time')
 plt.ylabel('Pollution')
-plt.legend()
+plt.legend(['Actual', 'Predicted'])
 plt.show()
 
-plt.plot(test_Y[0], label='Actual')
-plt.plot(test_predict[:,0], label='Predicted')
-plt.xlabel('Time')
-plt.ylabel('Pollution')
-plt.legend()
-plt.show()
+print('Train RMSE:', train_rmse)
+print('Train MAE:', train_mae)
+print('Train R2:', train_r2)
+print('Test RMSE:', test_rmse)
+print('Test MAE:', test_mae)
+print('Test R2:', test_r2)

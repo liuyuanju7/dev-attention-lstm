@@ -6,8 +6,8 @@ from datetime import timedelta
 np.random.seed(0)
 
 # 定义时间范围和特征列
-start_date = pd.Timestamp('2022-01-01')
-end_date = start_date + timedelta(days=3650)
+start_date = pd.Timestamp('2023-01-01')
+end_date = start_date + timedelta(days=299)
 features = ['NewIssueCount', 'IssueSolvedAvgTime', 'MRCount', 'DevDevelopCycleRatio', 'DemandDevScale', 'DemandThroughput']
 
 # 生成随机数据
@@ -16,14 +16,23 @@ data['Date'] = pd.date_range(start=start_date, end=end_date, freq='D')
 
 # 生成具有线性关系的数据
 for feature in features:
-    if feature == 'DemandThroughput':
-        # 生成具有线性关系的特征列，并添加一些随机噪音
-        x = np.linspace(0, 1, len(data))
-        y = 2 * x + np.random.normal(0, 0.5, len(data))
-        data[feature] = y
-    else:
-        # 生成随机的非目标特征列
-        data[feature] = np.random.rand(len(data))
+    x = np.linspace(0, 1, len(data))
+    y = 5 * x + np.random.normal(0, 1, len(data))
+    data[feature] = y
+
+# 设置示例数据
+example_data = pd.DataFrame({
+    'Date': [pd.Timestamp('2023-01-01')],
+    'NewIssueCount': [16],
+    'IssueSolvedAvgTime': [5.19],
+    'MRCount': [3],
+    'DevDevelopCycleRatio': [80],
+    'DemandDevScale': [23],
+    'DemandThroughput': [6]
+})
+
+# 将示例数据添加到生成的数据中
+data = pd.concat([example_data, data], ignore_index=True)
 
 # 保存数据到CSV文件
 data.to_csv('timeseries_data.csv', index=False)
