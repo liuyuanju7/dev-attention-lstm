@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 # 读取CSV文件
-data = pd.read_csv('./dataset/pollution-simple.csv')
+data = pd.read_csv('./dataset/pollution-simple2.csv')
 
 # 提取 pollution 列的数据
 pollution_data = data['pollution'].values.reshape(-1, 1)
@@ -19,4 +19,4 @@ rounded_data = scaled_data.round().astype(int)
 data['pollution'] = rounded_data
 
 # 将修改后的数据保存到新的CSV文件
-data.to_csv('normalized_data.csv', index=False)
+data.to_csv('data.csv', index=False)

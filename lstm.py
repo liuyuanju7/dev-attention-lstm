@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 # 读取CSV文件
 # data = pd.read_csv('./dataset/pollution-simple.csv')
-data = pd.read_csv('./normalized_data.csv')
+data = pd.read_csv('dataset.csv')
 
 # 提取需要的特征列
 features = ['date', 'dew', 'temp', 'press', 'wnd_spd', 'snow', 'pollution']
@@ -54,7 +54,7 @@ model = Sequential()
 model.add(LSTM(units=50, input_shape=(lookback, X_train.shape[2])))
 model.add(Dense(units=1))
 model.compile(optimizer='adam', loss='mean_squared_error')
-
+model.summary()
 # 训练模型
 history = model.fit(X_train, y_train, epochs=50, batch_size=32, validation_data=(X_test, y_test))
 

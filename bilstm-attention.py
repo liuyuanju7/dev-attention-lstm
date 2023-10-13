@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from keras.models import Sequential, Model
-from keras.layers import Bidirectional, LSTM, Dense, Input, Concatenate, Activation, Dot
+from keras.layers import Bidirectional, LSTM, Dense, Input, Concatenate, Activation, Dot, Dropout
+from keras.utils import plot_model
 
 # 读取数据
 data = pd.read_csv('./dataset/pollution.csv')
@@ -26,20 +27,19 @@ def create_dataset(dataset, time_steps=1):
         Y.append(dataset[i+time_steps])
     return np.array(X), np.array(Y)
 
-time_steps = 10  # 可灵活控制的时间步长
+time_steps = 4  # 可灵活控制的时间步长
 train_X, train_Y = create_dataset(train, time_steps)
 test_X, test_Y = create_dataset(test, time_steps)
 
 # 构建BiLSTM模型
 input_shape = (time_steps, 1)
-hidden_units = 50
+hidden_units = 64
 
 # 输入层
 input_layer = Input(shape=input_shape)
-
 # 双向LSTM层
 lstm_layer = Bidirectional(LSTM(hidden_units, return_sequences=True))(input_layer)
-
+lstm_layer = Dropout(0.01)(lstm_layer)
 # 注意力机制
 attention = Dense(1, activation='tanh')(lstm_layer)
 attention = Activation('softmax')(attention)
@@ -52,6 +52,7 @@ output_layer = Dense(1)(attention)
 model = Model(inputs=input_layer, outputs=output_layer)
 model.compile(loss='mean_squared_error', optimizer='adam')
 model.summary()
+plot_model(model, to_file='model.png', show_shapes=True)
 # 训练模型
 history = model.fit(train_X, train_Y, epochs=50, batch_size=32, validation_data=(test_X, test_Y), verbose=2)
 
