@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 # 读取CSV文件
 # data = pd.read_csv('./dataset/pollution-simple.csv')
-data = pd.read_csv('dataset.csv')
+data = pd.read_csv('data.csv')
 
 # 提取需要的特征列
 features = ['date', 'dew', 'temp', 'press', 'wnd_spd', 'snow', 'pollution']
@@ -37,7 +37,7 @@ def create_dataset(data, lookback):
     return np.array(X), np.array(y)
 
 # 设置时间步长（lookback）和训练/测试集划分比例
-lookback = 4
+lookback = 5
 train_ratio = 0.8
 
 # 划分训练集和测试集

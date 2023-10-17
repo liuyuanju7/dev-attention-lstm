@@ -8,7 +8,7 @@ from keras.layers import Bidirectional, LSTM, Dense, Input, Concatenate, Activat
 from keras.utils import plot_model
 
 # 读取数据
-data = pd.read_csv('./dataset/pollution.csv')
+data = pd.read_csv('./dataset/pollution-simple2.csv')
 
 # 提取需要的列并进行归一化处理
 dataset = data[['pollution']].values.astype('float32')
@@ -33,7 +33,7 @@ test_X, test_Y = create_dataset(test, time_steps)
 
 # 构建BiLSTM模型
 input_shape = (time_steps, 1)
-hidden_units = 64
+hidden_units = 32
 
 # 输入层
 input_layer = Input(shape=input_shape)
@@ -54,7 +54,7 @@ model.compile(loss='mean_squared_error', optimizer='adam')
 model.summary()
 plot_model(model, to_file='model.png', show_shapes=True)
 # 训练模型
-history = model.fit(train_X, train_Y, epochs=50, batch_size=32, validation_data=(test_X, test_Y), verbose=2)
+history = model.fit(train_X, train_Y, epochs=30, batch_size=16, validation_data=(test_X, test_Y), verbose=2)
 
 # 预测
 train_predict = model.predict(train_X)
@@ -90,24 +90,48 @@ plt.ylabel('Loss')
 plt.legend()
 plt.show()
 
-# 可视化注意力权重
-attention_weights = model.layers[3].get_weights()[0]
-plt.bar(range(time_steps), attention_weights[:, 0])
-plt.xlabel('Time Step')
-plt.ylabel('Attention Weight')
-plt.show()
+# # 可视化注意力权重
+# attention_weights = model.layers[3].get_weights()[0]
+# plt.bar(range(time_steps), attention_weights[:, 0])
+# plt.xlabel('Time Step')
+# plt.ylabel('Attention Weight')
+# plt.show()
 
 # 反归一化处理后可视化真实值与预测值
 plt.plot(train_Y, label='Actual')
 plt.plot(train_predict, label='Predicted')
 plt.xlabel('Time')
-plt.ylabel('Pollution')
+plt.ylabel('DemandThroughput')
 plt.legend()
 plt.show()
 
 plt.plot(test_Y, label='Actual')
 plt.plot(test_predict, label='Predicted')
 plt.xlabel('Time')
-plt.ylabel('Pollution')
+plt.ylabel('DemandThroughput')
 plt.legend()
 plt.show()
+
+'''
+这段代码构建了一个使用双向LSTM和注意力机制的模型来进行时间序列预测。下面是各层的输入和输出：
+
+输入层 (input_layer): 接收形状为 (time_steps, 1) 的输入数据。
+
+双向LSTM层 (lstm_layer): 接收输入层的输出，并返回一个具有形状 (time_steps, hidden_units*2) 的张量，其中 hidden_units 是 LSTM 层的隐藏单元数。
+
+Dropout层 (dropout): 随机丢弃一部分神经元，以防止过拟合。
+
+注意力层 (attention): 接收 LSTM 层的输出，并通过全连接层将其转换为具有形状 (time_steps, 1) 的张量。然后使用 softmax 函数进行归一化，以获得注意力权重。
+
+Dot层 (dot): 将注意力权重与 LSTM 层的输出进行点积操作，得到加权的 LSTM 输出。
+
+输出层 (output_layer): 接收加权的 LSTM 输出，并通过一个全连接层生成一个具有形状 (1,) 的预测值。
+
+整个模型的输入是时间步长为 time_steps 的序列数据，输出是一个预测值。
+
+建议使用 model.summary() 查看模型的详细结构和参数数量。
+
+模型的训练和预测部分使用了训练数据和测试数据，使用均方误差（MSE）作为损失函数进行优化。
+模型的训练过程中记录了损失函数的变化，并可视化了训练和测试的损失函数值。
+最后，对预测结果进行了反归一化处理，并计算了训练集和测试集的均方根误差（RMSE）、平均绝对误差（MAE）和决定系数（R2）等评估指标。
+'''

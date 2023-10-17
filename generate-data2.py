@@ -1,32 +1,17 @@
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
 
-input_dim = 6
-num_samples = 1000
+# 设置数据长度和周期
+data_length = 1193
+cycle_length = np.random.randint(15, 21)
 
-# Generate feature data
-features = np.random.uniform(low=0, high=20, size=(num_samples, input_dim))
-feature_names = ['dew', 'temp', 'press', 'wnd_spd', 'snow', 'pollution']
+# 生成周期性数据
+data = pd.DataFrame({
+    'Value': np.random.randint(0, 21, size=data_length)
+})
 
-# Generate label data
-weights = np.array([3, -2, 1, 0.5, -1.5, 2])  # Feature weights
-bias = 1  # Bias
-labels = np.dot(features, weights) + bias
+# 添加周期性
+data['Cycle'] = np.repeat(range(data_length // cycle_length + 1), cycle_length)[:data_length]
 
-# Scale labels to the range of 0-10
-min_label = np.min(labels)
-max_label = np.max(labels)
-scaled_labels = (labels - min_label) / (max_label - min_label) * 10
-
-# Generate date column
-start_date = datetime.now().date()
-dates = [start_date - timedelta(days=i) for i in range(num_samples)]
-
-# Create DataFrame
-data = pd.DataFrame(features, columns=feature_names)
-data['date'] = dates
-data['label'] = scaled_labels
-
-# Save DataFrame to CSV
-data.to_csv('dataset.csv', index=False)
+# 保存为CSV文件
+data.to_csv('periodic_data.csv', index=False)
