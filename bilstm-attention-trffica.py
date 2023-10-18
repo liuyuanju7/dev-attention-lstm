@@ -8,10 +8,11 @@ from keras.layers import Bidirectional, LSTM, Dense, Input, Concatenate, Activat
 from keras.utils import plot_model
 
 # 读取数据
+# data = pd.read_csv('./dataset/output_test_data_expand-simple.csv')
 data = pd.read_csv('./linear_data.csv')
 
 # 提取需要的列并进行归一化处理
-dataset = data[['pollution']].values.astype('float32')
+dataset = data[['DemandThroughput']].values.astype('float32')
 scaler = MinMaxScaler(feature_range=(0, 1))
 dataset = scaler.fit_transform(dataset)
 
