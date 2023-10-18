@@ -11,7 +11,7 @@ data = pd.read_csv('data.csv')
 # 提取需要的特征列
 features = data[['date', 'dew', 'temp', 'press', 'wnd_spd', 'snow', 'pollution']]
 
-# 归一化处理
+# 归一化处理数据
 scaler = MinMaxScaler(feature_range=(0, 1))
 scaled_data = scaler.fit_transform(features.values[:, -1:])  # 只保留pollution列
 
